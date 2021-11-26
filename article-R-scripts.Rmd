@@ -1,0 +1,306 @@
+---
+title: "article-scripts"
+author: "Rick Dean"
+date: "10/5/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+```
+
+This document provides the R script for reproducing the article [The Trump Vote Request and Sentiment Analysis](https://github.com/deandevl/R_Trump_Vote_Request).
+
+Second level sections in this document follow the article's second level sections. Subsections in this document describe the R script in producing the article.
+
+```{r}
+library(knitr)
+library(kableExtra)
+library(data.table)
+library(readr)
+library(stringi)
+library(RtextminerPkg)
+library(RplotterPkg)
+library(RtsaPkg)
+library(sentimentr)
+library(stopwords)
+library(ggplot2)
+library(here)
+```
+
+## Read the data
+
+### Read the file containing the transcript
+```{r}
+current_dir <- here()
+data_file_path <- file.path(current_dir, "data", "trump_vote_request.txt")
+linesInFile <- base::readLines(data_file_path)
+```
+
+### Create a data.table with the file statistics
+```{r}
+file_stats_dt <- data.table(
+  Statistic = c("FileSize","FileLines","FileWords"),
+  Value = c(format(object.size(linesInFile), units = "Kb"),
+            length(linesInFile), sum(stringi::stri_count_words(linesInFile)))
+)
+```
+
+### Create/save Table 1 "File Statistics" image
+```{r}
+RplotterPkg::create_table(
+  x = file_stats_dt,
+  caption = "File Statistics",
+  font_size = 14,
+  align_v = c("l","c"),
+  col_spec_df = data.frame(
+    column = c(1,2),
+    width = c("4cm", "4cm")
+  ),
+  output_file = file.path(current_dir, "img","table-1-file-stats.png")
+)
+```
+
+## Split transcript into sentences
+
+### Split transcript by sentences
+```{r}
+sentences_lst <- RtextminerPkg::tokenize_text(
+  x = linesInFile,
+  type = "sentence"
+)
+```
+
+### Create sentences_dt dataframe/add an index column
+```{r}
+n_rows <- nrow(sentences_lst$tokens_dt)
+sentences_dt <- sentences_lst$tokens_dt
+sentences_dt[,sentenceIdx := 1:n_rows]
+```
+
+### Create/save Table 2 "Sentences of the transcript" image
+```{r}
+RplotterPkg::create_table(
+  x = sentences_dt[1:3,],
+  caption = "Sentences of the transcript",
+  font_size = 14,
+  align_v = c("l","c"),
+  col_spec_df = data.frame(
+    column = c(1,2),
+    width = c("12cm", "4cm")
+  ),
+  output_file = file.path(current_dir, "img","table-2-sentences.png")
+)
+```
+
+## Split transcript into words and phrases
+
+### Split the transcript by words/remove stopwords
+```{r}
+stop_words <- stopwords::stopwords(source = "snowball")
+words_lst <- RtextminerPkg::tokenize_text(
+  x = sentences_dt,
+  input_col = "sentence",
+  stopwords = stop_words,
+  strip_numeric = T,
+  strip_punct = T,
+  strip_non_alphanum = T
+)
+```
+
+#### Create/save Table 3, the word table image
+```{r}
+RplotterPkg::create_table(
+  x = words_lst$tokens_dt[1:8,],
+  caption = "Words",
+  font_size = 14,
+  align_v = c("l","c"),
+  col_spec_df = data.frame(
+    column = c(1,2),
+    width = c("4cm","6cm")
+  ),
+  output_file = file.path(current_dir, "img","table-3-words.png")
+)
+```
+
+### Split the transcript by two word phrases
+```{r}
+phrases_lst <- RtextminerPkg::tokenize_text(
+  x = sentences_dt,
+  input_col = "sentence",
+  type = "ngram"
+)
+```
+
+#### Change column name "ngram" to "phrase" in tokens data frame
+```{r}
+data.table::setnames(phrases_lst$tokens_dt, old = "ngram", new = "phrase")
+```
+
+#### Add a "phrase" column in the count data frame
+```{r}
+phrases_lst$tokens_count[, phrase := paste(token_1, token_2)]
+```
+
+#### Create/save Table 4, the phrase table image
+```{r}
+RplotterPkg::create_table(
+  x = phrases_lst$tokens_dt[1:8,.(sentenceIdx,phrase)],
+  caption = "Phrases",
+  font_size = 14,
+  align_v = c("l","c"),
+  col_spec_df = data.frame(
+    column = c(1,2),
+    width = c("4cm","6cm")
+  ),
+  output_file = file.path(current_dir, "img","table-4-phrases.png")
+)
+```
+
+## Word and phrase frequencies
+
+### Create/save Figure 1, bar chart for words
+```{r}
+RplotterPkg::create_bar_plot(
+  df = words_lst$tokens_count[1:20],
+  aes_x = "word",
+  aes_y = "N",
+  title = "Word Frequencies",
+  x_title = NULL,
+  y_title = "Frequency",
+  y_limits = c(0,160),
+  y_major_breaks = seq(from = 0, to = 160, by = 20),
+  rot_y_tic_label = T,
+  bar_fill = "blue",
+  bar_color = "gold",
+  bar_alpha = 0.7,
+  do_coord_flip = T,
+  order_bars = "asc",
+  bar_labels = T,
+  png_file_path = file.path(current_dir, "img", "figure-1-words-bar.png")
+)
+```
+
+### Create/save Figure 2, bar chart for phrases
+```{r}
+RplotterPkg::create_bar_plot(
+  df = phrases_lst$tokens_count[1:22],
+  aes_x = "phrase",
+  aes_y = "N",
+  title = "Phrase Frequencies",
+  x_title = NULL,
+  y_title = "Frequency",
+  y_limits = c(0,160),
+  y_major_breaks = seq(from = 0, to = 160, by = 20),
+  rot_y_tic_label = T,
+  bar_fill = "blue",
+  bar_color = "gold",
+  bar_alpha = 0.7,
+  do_coord_flip = T,
+  order_bars = "asc",
+  bar_labels = T,
+  png_file_path = file.path(current_dir, "img", "figure-2-phrases-bar.png")
+)
+```
+
+## Interesting phrases
+
+### Locate sentences that have "you know" and "we won" together
+```{r}
+we_won_dt <- sentences_dt[data.table::like(sentences_dt$sentence, "we won")]
+you_know_we_won_dt <- we_won_dt[data.table::like(we_won_dt$sentence, "you know")]
+```
+
+### Create/save Table 5, "you know" + "we won" table
+```{r}
+RplotterPkg::create_table(
+  x = you_know_we_won_dt,
+  caption = "'you know' and 'we won' in Sentences",
+  font_size = 14,
+  align_v = c("l","c"),
+  col_spec_df = data.frame(
+    column = c(1,2),
+    width = c("14cm", "4cm")
+  ),
+  output_file = file.path(current_dir, "img","table-5-you-know-we-won.png")
+)
+```
+
+## Sentiment analysis of sentences
+
+### Compute the sentiment measures
+```{r}
+sentence_sentiment_dt <- sentimentr::sentiment(sentences_dt$sentence)
+```
+
+### Rename a column and remove a column
+```{r}
+data.table::setnames(sentence_sentiment_dt, old = "element_id", new = "sentenceIdx")
+sentence_sentiment_dt[, sentence_id := NULL]
+```
+
+### Create/save Figure 3, sentiment measures scatter plot
+```{r}
+RplotterPkg::create_scatter_plot(
+  df = sentence_sentiment_dt,
+  aes_x = "sentenceIdx",
+  aes_y = "sentiment",
+  connect = T,
+  show_pts = F,
+  x_limits = c(0,800),
+  x_major_breaks = seq(0,800,100),
+  y_limits = c(-1,1.25),
+  y_major_breaks = seq(-1,1.25,0.25),
+  rot_y_tic_label = T,
+  title = "Sentence Measurements" ,
+  subtitle = "777 sentences -- negative to positive scale",
+  x_title = "Sentence Index",
+  y_title = "Sentiment Scale",
+  png_file_path = file.path(current_dir, "img", "figure-3-sentiment-scatter.png"),
+  png_width_height = c(1060,480)
+)
+```
+
+### Create/save Table 6, prominent sentences
+```{r}
+prominent_sent_dt <- data.table(
+  Sentence = c("it was much more criminal than that.",
+               "they’re really wrong, and they’re really wrong, brad.",
+               "go ahead, please.",
+               "and the truth, the real truth is i won by 400,000 votes, at least."),
+  Score = c(-0.74, -0.85, 1.039, 1.026),
+  SentenceID = c(477, 629, 400, 764)
+)
+RplotterPkg::create_table(
+  x = prominent_sent_dt,
+  caption = "Prominent Negative/Positive Sentences",
+  font_size = 14,
+  align_v = c("l","c","c"),
+  col_spec_df = data.frame(
+    column = c(1,2,3),
+    width = c("14cm", "4cm", "4cm")
+  ),
+  output_file = file.path(current_dir, "img","table-6-prominent-sentences.png")
+)
+```
+
+### Create/save Figure 4, moving average of sentiment scores
+```{r}
+RtsaPkg::graph_ma(
+  df = sentence_sentiment_dt,
+  time_col = "sentenceIdx",
+  value_col = "sentiment",
+  window_n = 5,
+  #ma_type = "wma",
+  show_observe = T,
+  title = "Simple Moving Average Sentiment of Sentences",
+  x_limits = c(0,800),
+  x_major_breaks = seq(0,800,100),
+  show_pts = F,
+  col_width = 12,
+  row_height = 7,
+  palette_colors = c("black", "red"),
+  png_file_path = file.path(current_dir, "img","figure-4-simple-ma.png")
+)
+```
+

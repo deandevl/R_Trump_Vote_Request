@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<title>R-Trump-Vote-html</title>
+	</head>
+	<link rel="stylesheet" href="style.css">
+	<body>
+		
+		<h1>R Text Mining and the Trump Vote Request</h1>
+		
+		<p class="article-source">Posted on October 3, 2021 by Rick Dean in
+			<a href="https://github.com/deandevl/R_Trump_Vote_Request">R Trump Vote Request</a>
+		</p>
+		
+		<article>
+			<figure>
+				<img src="img/Raffensperger_Trump.png", alt="Trump and Raffensperger", style="width: 100%">
+				<figcaption>Georgia's Secretary of State Brad Raffensperger and Donald Trump (Washington Post)</figcaption>
+			</figure>
+			
+			<h2>What is text mining</h2>
+			
+			<p>
+				Text mining involves "the discovery by computer of new, previously unknown information, by automatically extracting information from different written resources" <a href="https://people.ischool.berkeley.edu/~hearst/text-mining.html">hearst2003</a>. Written resources may include websites, books, emails, reviews, and articles. This article will look into an online text transcript of a phone call made by President Donald Trump who pushed Georgia Secretary of State Brad Raffensperger to "find" votes to overturn the election results after his loss to President-elect Joe Biden. The audio recording of the phone call and transcript were first reported by the 
+				<a href="https://www.washingtonpost.com/politics/trump-raffensperger-call-transcript-georgia-vote/2021/01/03/2768e0cc-4ddd-11eb-83e3-322644d82356_story.html">Washington Post</a>.  My analysis will start with taking the transcript's lines and split/tokenize them into individual words, pairs of words (called an n-gram or bigram), and by whole sentences.  I will remove extremely common words such as "the", "of", "to" (known as stop words). I will use a word list named
+				<a href="http://snowball.tartarus.org/algorithms/english/stop.txt">Snowball</a> in deciding which words to remove.  The analysis poses the following questions:
+			</p>
+
+			<ol>
+				<li>What are the most frequent words and pairs of words used in the call.</li>
+				<li>In finding the most frequent word, what is the relationship of this word to other words.</li>
+				<li>Can I find other interesting pairs of words and show their respective sentences to get an idea on the context.</li>
+				<li>Can I evaluate or score each sentence on a continuous scale of sentiment from negative to positive.</li>
+				<li>Given a sentiment score for each sentence can I identify the two most negative and positive sentences and where they appear in the call.</li>
+				<li>Is there a trend or spike in the sentence scores as the call progresses.</li>
+			</ol>
+
+			<h2>Read the data</h2>
+
+			<p>
+			After reading the transcript file
+				<code>trump_vote_request.txt</code>, I summarize in Table 1 the transcript's size in terms of overall lines and words. Note that all the tables in this article were created using	<a href="https://github.com/deandevl/RplotterPkg">
+					<code>RplotterPkg::create_table()</code></a>
+			</p>
+
+			<div class="table-figure">
+				<figure style="width: 8cm">
+					<img src="img/table-1-file-stats.png"/>
+					<figcaption>Table 1</figcaption>
+				</figure>
+			</div>
+
+			<h2>Split transcript into sentences</h2>
+
+			<p>
+				I will now split the transcript into sentences. The function used to split the transcript is
+				<a href="https://github.com/deandevl/RtextminerPkg"><code>RtextminerPkg::tokenize-text()</code></a> which wraps functions from the
+				<a href="https://cran.r-project.org/web/packages/tokenizers/vignettes/introduction-to-tokenizers.html">tokenizers package</a>.
+				Table 2 below shows the first few lines of sentences.
+			</p>
+
+			<div class="table-figure">
+				<figure style="width: 16cm">
+					<img src="img/table-2-sentences.png"/>
+					<figcaption>Table 2</figcaption>
+				</figure>
+			</div>
+			
+			<h2>Split transcript into words and phrases</h2>
+
+			<p>
+			I will also split the transcript into individual words and pairs of words. Note that stopwords are removed for the word collection. Table 3 below shows a few of the words split from the above sentences. I am showing the word along with the sentence index from which it originated. Note again, that I have removed the stop words. Table 4 shows the first few pairs of words with the sentence index where the stopwords were not removed.
+			</p>
+			
+			<div class="flex-container">
+				<figure style="width: 10cm">
+					<img src="img/table-3-words.png"/>
+					<figcaption>Table 3</figcaption>
+				</figure>
+
+				<figure style="width: 10cm">
+					<img src="img/table-4-phrases.png"/>
+					<figcaption>Table 4</figcaption>
+				</figure>
+			</div>
+
+    	<h2>Word and phrase frequencies</h2>
+
+			<p>	
+			With the transcript now split by words and pairs of words, I can look at their frequencies in an ordered bar chart. From the Figure 1 bar chart below which was created using
+			<a href="https://github.com/deandevl/RplotterPkg">RPlotterPkg::create-bar-plot()</a>, the word "know" has the highest frequency.
+			</p>
+
+    	<p>
+			In Figure 2 for the pairs of words, I see that the words "you" and "know" form the top phrase.
+			</p>
+
+			<div class="chart-figure">
+				<div class="flex-container">
+					<figure style="width: 480px; height: 480px">
+						<img src="img/figure-1-words-bar.png"/>
+						<figcaption>Figure 1</figcaption>
+					</figure>
+
+					<figure style="width: 480px; height: 480px">
+						<img src="img/figure-2-phrases-bar.png"/>
+						<figcaption>Figure 2</figcaption>
+					</figure>
+				</div>
+			</div>
+
+			<h2>Interesting phrases</h2>
+
+			<p>
+			The phrase "you know" is very common and
+				<a href="https://www.english-grammar-today.com/">English Grammar Today</a> gives a sense of the phrase:
+				<blockquote cite="https://dictionary.cambridge.org/grammar/british-grammar/you-know">We use "you know" very commonly in speaking. It is used to check with our listeners that we share the same knowledge. When we use "you know", we assume that the listener or listeners do have the knowledge that we want them to have.</blockquote>
+    	</p>
+
+			<p> 
+		Another interesting phrase from the chart is "we won" where I can easily locate sentences with this phrase and get an idea of context. In the conversation there are a few instances where the phrases "you know" and "we won" appear together in the same sentence. These sentences are listed in Table 5.
+			</p>
+
+			<div class="table-figure">
+				<figure style="width: 16cm">
+					<img src="img/table-5-you-know-we-won.png"/>
+					<figcaption>Table 5</figcaption>
+				</figure>
+			</div>	
+
+			<h2>Sentiment analysis of sentences</h2>
+			
+			<p>Sentiment analysis is where an attempt is made to estimate some negative to positive continuous measure that reflects the emotional content of a word, sentence, or document.  For our analysis I assign an emotional measurement to each individual sentence as they occur in the call's transcript. The measurement is based on the R package
+				<a href="https://github.com/trinker/sentimentr">sentimentr::sentiment()</a> where the author states:
+			</p>
+			
+			<blockquote cite="https://github.com/trinker/sentimentr"> ...is designed to quickly calculate text polarity sentiment at the sentence level and optionally aggregate by rows or grouping variable(s)...sentimentr attempts to take into account valence shifters (i.e., negators, amplifiers (intensifiers), de-amplifiers (downtoners), and adversative conjunctions) while maintaining speed.
+			</blockquote>
+			
+			<p>
+				Figure 3 below shows the results of each sentence with a score from the beginning to the end of the conversation.  The chart was created using
+				<a href="https://github.com/deandevl/RplotterPkg">RplotterPkg::create-scatter-plot()</a>.
+			</p>
+			
+			<div class="chart-figure">
+				<figure style="width: 1060px; height: 520px">
+					<img src="img/figure-3-sentiment-scatter.png"/>
+					<figcaption>Figure 3</figcaption>
+				</figure>
+			</div>
+			
+			<p>
+				Table 6 shows four of the more prominent sentences, their negative/positive measurement and sentence location.
+			</p>
+			
+			<div class="table-figure">
+				<figure style="width: 22cm">
+					<img src="img/table-6-prominent-sentences.png"/>
+					<figcaption>Table 6</figcaption>
+				</figure>
+			</div>
+			
+			<p>
+				A plot of the moving average of the sentence sentiment values might reveal a trend or some spiking across the conversation.  Figure 4 shows the original sentence measures (black line) with an overlap of a simple moving average (red line).  The moving average is based on averaging a succession of 5 sentence scores along the conversation time line using
+				<a href="https://github.com/deandevl/RtsaPkg">RtsaPkg::graph-ma()</a>. Other more sophisticated moveing average algorithms are available from the package.  It appears that there might be some negativity in the middle and positivity toward the end of the conversation.
+			</p>	
+			
+			<div >
+				<figure style="width: 1020px; height: 600px">
+					<img src="img/figure-4-simple-ma.png"/>
+					<figcaption>Figure 4</figcaption>
+				</figure>
+			</div>
+			
+			<h2>Conclusion</h2>
+			
+			<p>
+				I have shown a sample of some of the methods in R text mining.  Be sure to check out other R text analysis techniques at
+				<a href="https://github.com/deandevl/RtextminerPkg">RtextminerPkg</a> along with data visualization at
+				<a href="https://github.com/deandevl/RplotterPkg">RplotterPkg</a>
+			</p>
+			
+		</article>
+	</body>
+</html>
